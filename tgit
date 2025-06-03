@@ -233,8 +233,19 @@ EOT
 #==============================================================================
 
 
-
-
+#==============================================================================
+# If there are no command-line parameters, show help
+#==============================================================================
+if [ -z $1 ]; then
+   echo "repo clone <project_name>"
+   echo "repo push <git parameters>"
+   echo "repo pull <git parameters>"
+   echo "repo connect"
+   echo "repo hash"
+   echo "repo remote"
+   exit 0
+fi
+#==============================================================================
 
 
 #
