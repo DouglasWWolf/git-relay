@@ -305,6 +305,14 @@ fi
 
 if [ $1 == "connect" ]; then
     repo_connect
+    exit
+fi
+
+if [ $1 == "remote" ]; then
+    line=$(git remote -v | grep "(fetch)")
+    read _ host _ <<< $line
+    echo $host
+    exit
 fi
 
 
