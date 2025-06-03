@@ -1,0 +1,13 @@
+echo "Waiting for tgit commands..."
+while [ 1 -eq 1 ]; do 
+    if [ -f script ]; then
+        chmod +x script
+        ./script 1>stdout.txt 2>stderr.txt
+        echo $? >runner.result
+        cat stdout.txt
+        cat stderr.txt 
+        rm -rf script 
+    fi
+    sleep 1
+done
+
