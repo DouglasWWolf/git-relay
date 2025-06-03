@@ -1,0 +1,310 @@
+#==============================================================================
+# A tool for interacting with git repos by tunneling through another computer
+#
+# Written by D. Wolf
+#==============================================================================
+
+# Load configuration settings
+source ~/tgit.conf
+
+#==============================================================================
+# Executes a script on a remote system and returns the results
+#==============================================================================
+remote_execute()
+{
+
+    # Fetch the local name of the script to execute remotely
+    local script=$1
+
+    # Establish the name of the remote file that contains the script's result code
+    local remote_result=${tgit_folder}/runner.result
+
+    # This is the local "runner result" file
+    local local_result=${tgit_temp}/runner.result
+
+    # Delete the file that records the bash result code
+    sshpass -p $tgit_pw ssh $tgit_user "rm -rf $remote_result"
+
+    # Copy the script to the remote system for execution
+    sshpass -p $tgit_pw scp $script ${tgit_user}:${tgit_folder}/script
+
+    # Delete the local copy of the runner result
+    rm -rf $local_result
+
+    # Wait for the script we just sent to complete by periodically attempting to
+    # fetch runner.result until that attempt is succesfull
+    while [ 1 -eq 1 ]; do
+        sshpass -p $tgit_pw scp ${tgit_user}:$remote_result $local_result  2>/dev/null
+        test -f $local_result && break
+        sleep 1
+    done
+
+    # Fetch and display the results of the script
+    sshpass -p $tgit_pw scp ${tgit_user}:${tgit_folder}/stdout.txt ${tgit_temp}/stdout.txt
+    sshpass -p $tgit_pw scp ${tgit_user}:${tgit_folder}/stderr.txt ${tgit_temp}/stderr.txt
+    cat ${tgit_temp}/stdout.txt ${tgit_temp}/stderr.txt
+
+    # If the script's result code is non-zero, display the error
+    error_code=$(cat $local_result)
+    if [ $error_code -ne 0 ]; then
+        echo "FAILED with error code" $error_code
+    fi
+
+    return $error_code
+}
+#==============================================================================
+
+#==============================================================================
+# This deletes a remote folder
+#==============================================================================
+rm_remote_dir()
+{
+    local remote_dir=${tgit_folder}/$(basename $1)
+
+    # Delete the existing remote folder if it exists
+    sshpass -p $tgit_pw ssh ${tgit_user} "rm -rf $remote_dir"
+}
+#==============================================================================
+
+
+
+#==============================================================================
+# This copies a directory from local to remote
+#==============================================================================
+put_dir()
+{
+    local local_dir=$1
+    local remote_dir=${tgit_folder}/$(basename $1)
+
+    # Delete the existing remote folder if it exists
+    rm_remote_dir $remote_dir
+    
+    # Copy the local folder to the remote system
+    sshpass -p $tgit_pw scp -r $local_dir ${tgit_user}:/${remote_dir}
+}
+#==============================================================================
+
+
+#==============================================================================
+# This is like put_dir but uses rsync for efficiency
+#==============================================================================
+put_dir_rsync()
+{
+    local local_dir=$1
+    local remote_dir=${tgit_folder}/$(basename $1)
+   
+    # Copy the local folder to the remote system
+    sshpass -p $tgit_pw rsync -az ${local_dir}/ ${tgit_user}:/${remote_dir}
+}
+#==============================================================================
+
+
+
+#==============================================================================
+# This copies a directory from remote to local
+#==============================================================================
+get_dir()
+{
+    local local_dir=$1
+    local remote_dir=${tgit_folder}/$(basename $1)
+
+    # Delete the existing local folder if it exists
+    rm -rf $local_dir
+    
+    # Copy the remote folder to the local system
+    sshpass -p $tgit_pw scp -r ${tgit_user}:/${remote_dir} $local_dir
+}
+#==============================================================================
+
+
+#==============================================================================
+# This is like get_dir but uses "rsync" for efficiency
+#==============================================================================
+get_dir_rsync()
+{
+
+    local local_dir=$1
+    local remote_dir=${tgit_folder}/$(basename $1)
+
+    # Copy the remote folder to the local system
+    sshpass -p $tgit_pw rsync -az ${tgit_user}:${remote_dir}/ $local_dir
+}
+#==============================================================================
+
+
+
+#==============================================================================
+# This clones a repo from the remote cloud to the local file-system
+#==============================================================================
+repo_clone()
+{
+    dir=$1
+
+    # Ensure the caller gave us a repo/directory name    
+    if [ -z $dir ]; then
+        echo "Missing filename on command line" 1>&2
+        return 1
+    fi
+
+    # Ensure the local directory doesn't already exist
+    if [ -d $dir ]; then
+        echo "Already exists: $dir"
+        return 1
+    fi
+
+    # This is the name of the remote directory
+    remote_dir=${tgit_folder}/${dir}
+
+    # Delete the existing remote folder if it exists
+    rm_remote_dir $remote_dir
+
+    # On the remote system, clone the repo from the cloud
+    tgit clone ${tgit_hub}/$dir
+    test $? -eq 0 || return $?
+
+    # Now copy the freshly cloned repo folder to the local machine
+    get_dir $dir
+
+    # Hand the caller the exit code
+    return $?
+}
+#==============================================================================
+
+
+#==============================================================================
+# This pushes a repo from the local filesystem to the remote cloud
+#==============================================================================
+repo_push()
+{
+    # Copy the directory from the local-filesystem to the remote mechine
+    put_dir_rsync $PWD
+
+    # Perform the push from the remote system to the cloud    
+    tgit push $1 $2 $3 $4 $5 $6 $7 $8 $9
+}
+#==============================================================================
+
+
+#==============================================================================
+# This pulls the contents of a repo to refresh the local filesystem
+#==============================================================================
+repo_pull()
+{
+    tgit pull $1 $2 $3 $4 $5 $6 $7 $8 $9
+
+    get_dir_rsync $PWD 
+}
+#==============================================================================
+
+
+#==============================================================================
+# This pulls the contents of a repo to refresh the local filesystem
+#==============================================================================
+repo_connect()
+{
+    project=$(basename $PWD)
+
+    # Create the connect script
+    cat<<EOT >connect.sh
+    echo "# $project" > README.md
+    git init
+    git add README.md
+    git commit -m "first commit"
+    git branch -M main
+    git remote add origin ${tgit_hub}/${project}.git
+    git push -u origin main
+EOT
+
+    # Make the connect.sh script executable
+    chmod +x connect.sh
+
+    # Now copy the entire folder to the remote system
+    put_dir $PWD
+
+    # On the remote system, connect the filesystem folder to the repo
+    echo "cd $tgit_folder/$(basename $PWD)" >$script
+    echo "./connect.sh"                    >>$script
+    echo "rm -rf connect.sh"               >>$script
+    remote_execute $script
+    
+    # And sync our local file-system from the remote folder
+    get_dir_rsync $PWD
+}
+#==============================================================================
+
+
+
+
+
+
+#
+# Ensure that we are either in a git repo, or (if we're cloning) that we 
+# aren't in a git repo
+#
+if [ $1 == "clone" ] || [ $1 == "connect" ]; then
+    if [ -d .git ]; then
+        echo "This directory is a git repo!"
+        exit 1
+    fi
+else
+
+    if [ ! -d .git ]; then
+        echo "This is not a git repo!"
+        exit 1
+    fi
+fi
+
+
+# Make sure the temp directory exists
+mkdir -p $tgit_temp
+rm -rf $tgit_temp/*
+
+# Create the name of scripts we'll run
+script=${tgit_temp}/script
+
+# If we were called via the name "tgit", just run a remote git command
+if [ $(basename $0) == "tgit" ]; then
+    if [ $1 == "clone" ]; then
+        echo "cd $tgit_folder" >$script
+    else
+        echo "cd $tgit_folder/$(basename $PWD)" >$script
+    fi
+
+    echo "git $1 $2 $3 $4 $5 $6 $7 $8 $9" >>$script
+
+    # Our exit code is the return code from "remote_execute"
+    remote_execute $script
+    exit
+fi
+
+if [ $1 == "put" ]; then
+    put_dir $PWD
+    exit
+fi
+
+if [ $1 == "clone" ]; then
+    repo_clone $2
+    exit
+fi
+
+if [ $1 == "push" ]; then
+    repo_push $2 $3 $4 $5 $6 $7 $8 $9
+    exit
+fi
+
+
+if [ $1 == "pull" ]; then
+    repo_pull $2 $3 $4 $5 $6 $7 $8 $9
+    exit
+fi
+
+if [ $1 == "hash" ]; then
+    git log -1 --pretty=format:"%H"
+    exit
+fi
+
+if [ $1 == "connect" ]; then
+    repo_connect
+fi
+
+
