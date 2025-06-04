@@ -240,7 +240,7 @@ EOT
 git_relay_server()
 {
     # Switch to the folder where git-relay repos are stored
-    mkdir -p git_relay_folder
+    mkdir -p $git_relay_folder
     cd $git_relay_folder
 
     # We're going to listen for commands forever
