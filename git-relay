@@ -287,7 +287,7 @@ if [ -z $1 ]; then
    echo "repo push <git parameters>"
    echo "repo pull <git parameters>"
    echo "repo connect"
-   echo "repo hash"
+   echo "repo hash [remote]"
    echo "repo remote"
    exit 0
 fi
@@ -356,7 +356,13 @@ if [ $1 == "pull" ]; then
 fi
 
 if [ $1 == "hash" ]; then
-    git log -1 --pretty=format:"%H"
+    if [ "$2" == "remote" ]; then
+        repo_pull
+        git-relay log -1 --pretty=format:"%H"   
+        echo
+    else
+        git log -1 --pretty=format:"%H"
+    fi
     exit
 fi
 
