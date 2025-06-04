@@ -1,11 +1,12 @@
 #==============================================================================
-# A tool for interacting with git repos by tunneling through another computer
+# A tool for interacting with git repos by relaying git operations through
+# another computer
 #
 # Written by D. Wolf
 #==============================================================================
 
 # Load configuration settings
-source ~/tgit.conf
+source ~/git-relay.conf
 
 #==============================================================================
 # Executes a script on a remote system and returns the results
@@ -17,16 +18,16 @@ remote_execute()
     local script=$1
 
     # Establish the name of the remote file that contains the script's result code
-    local remote_result=${tgit_folder}/runner.result
+    local remote_result=${git_relay_folder}/runner.result
 
     # This is the local "runner result" file
-    local local_result=${tgit_temp}/runner.result
+    local local_result=${git_relay_temp}/runner.result
 
     # Delete the file that records the bash result code
-    sshpass -p $tgit_pw ssh $tgit_user "rm -rf $remote_result"
+    sshpass -p $git_relay_pw ssh $git_relay_user "rm -rf $remote_result"
 
     # Copy the script to the remote system for execution
-    sshpass -p $tgit_pw scp $script ${tgit_user}:${tgit_folder}/script
+    sshpass -p $git_relay_pw scp $script ${git_relay_user}:${git_relay_folder}/script
 
     # Delete the local copy of the runner result
     rm -rf $local_result
@@ -34,15 +35,15 @@ remote_execute()
     # Wait for the script we just sent to complete by periodically attempting to
     # fetch runner.result until that attempt is succesfull
     while [ 1 -eq 1 ]; do
-        sshpass -p $tgit_pw scp ${tgit_user}:$remote_result $local_result  2>/dev/null
+        sshpass -p $git_relay_pw scp ${git_relay_user}:$remote_result $local_result  2>/dev/null
         test -f $local_result && break
         sleep 1
     done
 
     # Fetch and display the results of the script
-    sshpass -p $tgit_pw scp ${tgit_user}:${tgit_folder}/stdout.txt ${tgit_temp}/stdout.txt
-    sshpass -p $tgit_pw scp ${tgit_user}:${tgit_folder}/stderr.txt ${tgit_temp}/stderr.txt
-    cat ${tgit_temp}/stdout.txt ${tgit_temp}/stderr.txt
+    sshpass -p $git_relay_pw scp ${git_relay_user}:${git_relay_folder}/stdout.txt ${git_relay_temp}/stdout.txt
+    sshpass -p $git_relay_pw scp ${git_relay_user}:${git_relay_folder}/stderr.txt ${git_relay_temp}/stderr.txt
+    cat ${git_relay_temp}/stdout.txt ${git_relay_temp}/stderr.txt
 
     # If the script's result code is non-zero, display the error
     error_code=$(cat $local_result)
@@ -59,10 +60,10 @@ remote_execute()
 #==============================================================================
 rm_remote_dir()
 {
-    local remote_dir=${tgit_folder}/$(basename $1)
+    local remote_dir=${git_relay_folder}/$(basename $1)
 
     # Delete the existing remote folder if it exists
-    sshpass -p $tgit_pw ssh ${tgit_user} "rm -rf $remote_dir"
+    sshpass -p $git_relay_pw ssh ${git_relay_user} "rm -rf $remote_dir"
 }
 #==============================================================================
 
@@ -74,13 +75,13 @@ rm_remote_dir()
 put_dir()
 {
     local local_dir=$1
-    local remote_dir=${tgit_folder}/$(basename $1)
+    local remote_dir=${git_relay_folder}/$(basename $1)
 
     # Delete the existing remote folder if it exists
     rm_remote_dir $remote_dir
     
     # Copy the local folder to the remote system
-    sshpass -p $tgit_pw scp -r $local_dir ${tgit_user}:/${remote_dir}
+    sshpass -p $git_relay_pw scp -r $local_dir ${git_relay_user}:/${remote_dir}
 }
 #==============================================================================
 
@@ -91,10 +92,10 @@ put_dir()
 put_dir_rsync()
 {
     local local_dir=$1
-    local remote_dir=${tgit_folder}/$(basename $1)
+    local remote_dir=${git_relay_folder}/$(basename $1)
    
     # Copy the local folder to the remote system
-    sshpass -p $tgit_pw rsync -az ${local_dir}/ ${tgit_user}:/${remote_dir}
+    sshpass -p $git_relay_pw rsync -az ${local_dir}/ ${git_relay_user}:/${remote_dir}
 }
 #==============================================================================
 
@@ -106,13 +107,13 @@ put_dir_rsync()
 get_dir()
 {
     local local_dir=$1
-    local remote_dir=${tgit_folder}/$(basename $1)
+    local remote_dir=${git_relay_folder}/$(basename $1)
 
     # Delete the existing local folder if it exists
     rm -rf $local_dir
     
     # Copy the remote folder to the local system
-    sshpass -p $tgit_pw scp -r ${tgit_user}:/${remote_dir} $local_dir
+    sshpass -p $git_relay_pw scp -r ${git_relay_user}:/${remote_dir} $local_dir
 }
 #==============================================================================
 
@@ -124,10 +125,10 @@ get_dir_rsync()
 {
 
     local local_dir=$1
-    local remote_dir=${tgit_folder}/$(basename $1)
+    local remote_dir=${git_relay_folder}/$(basename $1)
 
     # Copy the remote folder to the local system
-    sshpass -p $tgit_pw rsync -az ${tgit_user}:${remote_dir}/ $local_dir
+    sshpass -p $git_relay_pw rsync -az ${git_relay_user}:${remote_dir}/ $local_dir
 }
 #==============================================================================
 
@@ -153,13 +154,13 @@ repo_clone()
     fi
 
     # This is the name of the remote directory
-    remote_dir=${tgit_folder}/${dir}
+    remote_dir=${git_relay_folder}/${dir}
 
     # Delete the existing remote folder if it exists
     rm_remote_dir $remote_dir
 
     # On the remote system, clone the repo from the cloud
-    tgit clone ${tgit_hub}/$dir
+    git-relay clone ${git_relay_hub}/$dir
     test $? -eq 0 || return $?
 
     # Now copy the freshly cloned repo folder to the local machine
@@ -180,7 +181,7 @@ repo_push()
     put_dir_rsync $PWD
 
     # Perform the push from the remote system to the cloud    
-    tgit push $1 $2 $3 $4 $5 $6 $7 $8 $9
+    git-relay push $1 $2 $3 $4 $5 $6 $7 $8 $9
 }
 #==============================================================================
 
@@ -190,7 +191,7 @@ repo_push()
 #==============================================================================
 repo_pull()
 {
-    tgit pull $1 $2 $3 $4 $5 $6 $7 $8 $9
+    git-relay pull $1 $2 $3 $4 $5 $6 $7 $8 $9
 
     get_dir_rsync $PWD 
 }
@@ -211,7 +212,7 @@ repo_connect()
     git add README.md
     git commit -m "first commit"
     git branch -M main
-    git remote add origin ${tgit_hub}/${project}.git
+    git remote add origin ${git_relay_hub}/${project}.git
     git push -u origin main
 EOT
 
@@ -222,7 +223,7 @@ EOT
     put_dir $PWD
 
     # On the remote system, connect the filesystem folder to the repo
-    echo "cd $tgit_folder/$(basename $PWD)" >$script
+    echo "cd $git_relay_folder/$(basename $PWD)" >$script
     echo "./connect.sh"                    >>$script
     echo "rm -rf connect.sh"               >>$script
     remote_execute $script
@@ -231,6 +232,43 @@ EOT
     get_dir_rsync $PWD
 }
 #==============================================================================
+
+
+#==============================================================================
+# This runs on the server side when we're called as "git-relay-server"
+#==============================================================================
+git_relay_server()
+{
+    # Switch to the folder where git-relay repos are stored
+    mkdir -p git_relay_folder
+    cd $git_relay_folder
+
+    # We're going to listen for commands forever
+    while [ 1 -eq 1 ]; do
+        echo "Waiting for git-relay command..."
+
+        # Wait for a script to arrive
+        while [ ! -f script ]; do
+            sleep 1
+        done
+
+        # Execute the script
+        chmod +x script
+        ./script 1>stdout.txt 2>stderr.txt
+        
+        # Capture the exit code
+        echo $? >runner.result
+
+        # Remove the script and wait for another
+        rm -rf script 
+
+        # Display the output
+        cat stdout.txt
+        cat stderr.txt 
+    done
+}
+#==============================================================================
+
 
 
 #==============================================================================
@@ -247,6 +285,11 @@ if [ -z $1 ]; then
 fi
 #==============================================================================
 
+
+# If we were called as the server, make it so
+if [ $(basename $0) == "git-relay-server" ]; then
+    git_relay_server
+fi
 
 #
 # Ensure that we are either in a git repo, or (if we're cloning) that we 
@@ -267,18 +310,18 @@ fi
 
 
 # Make sure the temp directory exists
-mkdir -p $tgit_temp
-rm -rf $tgit_temp/*
+mkdir -p $git_relay_temp
+rm -rf $git_relay_temp/*
 
 # Create the name of scripts we'll run
-script=${tgit_temp}/script
+script=${git_relay_temp}/script
 
-# If we were called via the name "tgit", just run a remote git command
-if [ $(basename $0) == "tgit" ]; then
+# If we were called via the name "git-relay", just run a remote git command
+if [ $(basename $0) == "git-relay" ]; then
     if [ $1 == "clone" ]; then
-        echo "cd $tgit_folder" >$script
+        echo "cd $git_relay_folder" >$script
     else
-        echo "cd $tgit_folder/$(basename $PWD)" >$script
+        echo "cd $git_relay_folder/$(basename $PWD)" >$script
     fi
 
     echo "git $1 $2 $3 $4 $5 $6 $7 $8 $9" >>$script

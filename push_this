@@ -1,4 +1,4 @@
-dir=/opt/tgit
+dir=/opt/git-relay
 if [ "$PWD" != "$dir" ]; then
     echo "Must be in $dir to do this"
     exit 1
