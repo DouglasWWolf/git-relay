@@ -272,6 +272,12 @@ git_relay_server()
 #==============================================================================
 
 
+# If we were called as the server, make it so
+if [ $(basename $0) == "git-relay-server" ]; then
+    git_relay_server
+fi
+
+
 
 #==============================================================================
 # If there are no command-line parameters, show help
@@ -287,11 +293,6 @@ if [ -z $1 ]; then
 fi
 #==============================================================================
 
-
-# If we were called as the server, make it so
-if [ $(basename $0) == "git-relay-server" ]; then
-    git_relay_server
-fi
 
 #
 # Ensure that we are either in a git repo, or (if we're cloning) that we 
