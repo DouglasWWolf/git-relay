@@ -255,12 +255,14 @@ git_relay_server()
         # Execute the script
         chmod +x script
         ./script 1>stdout.txt 2>stderr.txt
-        
-        # Capture the exit code
-        echo $? >runner.result
+        exit_code=$?
 
-        # Remove the script and wait for another
+        # Remove the script
         rm -rf script 
+
+        # Write the script's exit-code to a file. The client-side waits
+        # for the existence of this file to know the script has completed.
+        echo $exit_code>runner.result
 
         # Display the output
         cat stdout.txt
