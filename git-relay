@@ -305,8 +305,8 @@ if [ -z $1 ]; then
    echo "repo push <git parameters>"
    echo "repo pull <git parameters>"
    echo "repo connect"
-   echo "repo hash [remote]"
-   echo "repo remote"
+   echo "repo hash [origin]"
+   echo "repo origin"
    exit 0
 fi
 #==============================================================================
@@ -374,8 +374,8 @@ if [ $1 == "pull" ]; then
 fi
 
 if [ $1 == "hash" ]; then
-    if [ "$2" == "remote" ]; then
-        repo_pull
+    if [ "$2" == "origin" ]; then
+        git-relay pull
         git-relay log -1 --pretty=format:"%H"   
         echo
     else
@@ -389,7 +389,7 @@ if [ $1 == "connect" ]; then
     exit
 fi
 
-if [ $1 == "remote" ]; then
+if [ $1 == "origin" ]; then
     line=$(git remote -v | grep "(fetch)")
     read _ host _ <<< $line
     echo $host
