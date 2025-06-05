@@ -227,6 +227,9 @@ EOT
     echo "./connect.sh"                    >>$script
     echo "rm -rf connect.sh"               >>$script
     remote_execute $script
+
+    # Remove the local copy of connect.sh
+    rm -rf connect.sh
     
     # And sync our local file-system from the remote folder
     get_dir_rsync $PWD
