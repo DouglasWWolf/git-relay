@@ -34,7 +34,7 @@ remote_execute()
 
     # Wait for the script we just sent to complete by periodically attempting to
     # fetch runner.result until that attempt is succesfull
-    while [ 1 -eq 1 ]; do
+    while true; do
         sshpass -p $git_relay_pw scp ${git_relay_user}:$remote_result $local_result  2>/dev/null
         test -f $local_result && break
         sleep 1
@@ -262,7 +262,7 @@ git_relay_server()
     cd $git_relay_folder
 
     # We're going to listen for commands forever
-    while [ 1 -eq 1 ]; do
+    while true; do
         echo "Waiting for git-relay command..."
 
         # Wait for a script to arrive
