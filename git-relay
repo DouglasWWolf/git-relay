@@ -68,6 +68,18 @@ rm_remote_dir()
 #==============================================================================
 
 
+#==============================================================================
+# This synchronizes the local .git folder to the remote .git folder
+#==============================================================================
+sync_git_folder()
+{
+    local remote_dir=${git_relay_folder}/$(basename $PWD)
+
+    # Copy the remote .git folder to the local system
+    sshpass -p $git_relay_pw rsync -az ${git_relay_user}:${remote_dir}/.git/ .git
+}
+#==============================================================================
+
 
 #==============================================================================
 # This copies a directory from local to remote
@@ -177,11 +189,17 @@ repo_clone()
 #==============================================================================
 repo_push()
 {
+
+    local remote_dir=${git_relay_folder}/$(basename $PWD)
+
     # Copy the directory from the local-filesystem to the remote mechine
     put_dir_rsync $PWD
 
     # Perform the push from the remote system to the cloud    
     git-relay push $1 $2 $3 $4 $5 $6 $7 $8 $9
+
+    # Copy the remote .git folder to the local system
+    sync_git_folder
 }
 #==============================================================================
 
