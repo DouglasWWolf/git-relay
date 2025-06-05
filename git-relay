@@ -375,7 +375,7 @@ fi
 
 if [ $1 == "hash" ]; then
     if [ "$2" == "origin" ]; then
-        git-relay pull
+        git-relay pull >/dev/null
         git-relay log -1 --pretty=format:"%H"   
         echo
     else
