@@ -189,9 +189,6 @@ repo_clone()
 #==============================================================================
 repo_push()
 {
-
-    local remote_dir=${git_relay_folder}/$(basename $PWD)
-
     # Copy the directory from the local-filesystem to the remote mechine
     put_dir_rsync $PWD
 
