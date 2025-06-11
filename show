@@ -1,0 +1,35 @@
+#==============================================================================
+# This function examins the origin of a repo, and determines whether git-relay
+# will be required to push it.   git-relay is required when pushing a Roche
+# repo from outside of the Roche network
+#
+# Displays "1" if git-relay is required, otherwise displays "0"
+#==============================================================================
+requires_relay()
+{
+    # Fetch the repo's origin
+    line=$(git remote -v | grep "(fetch)")
+    read _ origin _ <<< $line
+    
+
+    # Is this a Roche repo?  If it's not, we're done
+    echo $origin | grep -q "\.roche\."
+    if [ $? -ne 0 ]; then
+        echo 0
+        return 
+    fi
+
+    # Try to ping ghe-rss.roche.com.  This is only possible
+    # if we are inside the roche network
+    ping_result=$(ping -c1 ghe-rss.roche.com 2>/dev/null)
+
+    # Did ghe-rss.roche.com resolve?
+    echo $ping_result | grep -q "1 packets"
+
+    # If we couldn't ping that server, we're outside of the
+    # Roche network and therefore need to use git-relay
+    test $? -eq 0 && echo 0 || echo 1
+}
+#==============================================================================
+
+requires_relay

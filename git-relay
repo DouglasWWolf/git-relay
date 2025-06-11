@@ -189,14 +189,20 @@ repo_clone()
 #==============================================================================
 repo_push()
 {
-    # Copy the directory from the local-filesystem to the remote mechine
-    put_dir_rsync $PWD
+    if [ $(requires_relay) -eq 1 ]; then
 
-    # Perform the push from the remote system to the cloud    
-    git-relay push $1 $2 $3 $4 $5 $6 $7 $8 $9
+        # Copy the directory from the local-filesystem to the remote mechine
+        put_dir_rsync $PWD
 
-    # Copy the remote .git folder to the local system
-    sync_git_folder
+        # Perform the push from the remote system to the cloud    
+        git-relay push $1 $2 $3 $4 $5 $6 $7 $8 $9
+
+        # Copy the remote .git folder to the local system
+        sync_git_folder
+
+    else
+        git push $1 $2 $3 $4 $5 $6 $7 $8 $9
+    fi
 }
 #==============================================================================
 
@@ -411,11 +417,7 @@ if [ $1 == "clone" ]; then
 fi
 
 if [ $1 == "push" ]; then
-    if [ $(requires_relay) -eq 1 ]; then
-        repo_push $2 $3 $4 $5 $6 $7 $8 $9
-    else
-        git push $2 $3 $4 $5 $6 $7 $8 $9
-    fi
+    repo_push $2 $3 $4 $5 $6 $7 $8 $9
     exit
 fi
 
