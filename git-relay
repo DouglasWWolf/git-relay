@@ -253,6 +253,18 @@ EOT
 
 
 #==============================================================================
+# Displays the origin of the repo
+#==============================================================================
+get_origin()
+{
+    line=$(git remote -v | grep "(fetch)")
+    read _ host _ <<< $line
+    echo $host
+}
+#==============================================================================
+
+
+#==============================================================================
 # This runs on the server side when we're called as "git-relay-server"
 #==============================================================================
 git_relay_server()
@@ -363,7 +375,13 @@ if [ $1 == "clone" ]; then
 fi
 
 if [ $1 == "push" ]; then
-    repo_push $2 $3 $4 $5 $6 $7 $8 $9
+    origin=$(get_origin)
+    echo $origin | grep -q "\.roche\."
+    if [ $? -eq 0 ];
+        repo_push $2 $3 $4 $5 $6 $7 $8 $9
+    else
+        git_push $2 $3 $4 $5 $6 $7 $8 $9
+    fi
     exit
 fi
 
@@ -390,9 +408,7 @@ if [ $1 == "connect" ]; then
 fi
 
 if [ $1 == "origin" ]; then
-    line=$(git remote -v | grep "(fetch)")
-    read _ host _ <<< $line
-    echo $host
+    get_origin
     exit
 fi
 
