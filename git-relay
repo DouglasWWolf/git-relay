@@ -212,9 +212,12 @@ repo_push()
 #==============================================================================
 repo_pull()
 {
-    git-relay pull $1 $2 $3 $4 $5 $6 $7 $8 $9
-
-    get_dir_rsync $PWD 
+    if [ $(requires_relay) -eq 1 ]; then
+        git-relay pull $1 $2 $3 $4 $5 $6 $7 $8 $9
+        get_dir_rsync $PWD 
+    else
+        git pull $1 $2 $3 $4 $5 $6 $7 $8 $9
+    fi
 }
 #==============================================================================
 
@@ -310,7 +313,7 @@ git_relay_server()
 
 #==============================================================================
 # This function examins the origin of a repo, and determines whether git-relay
-# will be required to push it.   git-relay is required when pushing a Roche
+# will be required to access it.   git-relay is required when accessing a Roche
 # repo from outside of the Roche network
 #
 # Displays "1" if git-relay is required, otherwise displays "0"
@@ -320,7 +323,6 @@ requires_relay()
     # Fetch the repo's origin
     line=$(git remote -v | grep "(fetch)")
     read _ origin _ <<< $line
-    
 
     # Is this a Roche repo?  If it's not, we're done
     echo $origin | grep -q "\.roche\."
@@ -416,12 +418,14 @@ if [ $1 == "clone" ]; then
     exit
 fi
 
+# This will use either git or git-relay to perform the push
 if [ $1 == "push" ]; then
     repo_push $2 $3 $4 $5 $6 $7 $8 $9
     exit
 fi
 
 
+# This will use either git or git-relay to perform the pull
 if [ $1 == "pull" ]; then
     repo_pull $2 $3 $4 $5 $6 $7 $8 $9
     exit
