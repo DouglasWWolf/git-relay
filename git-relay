@@ -165,11 +165,16 @@ repo_clone()
         return 1
     fi
 
-    # This is the name of the remote directory
-    remote_dir=${git_relay_folder}/${dir}
 
-    # Delete the existing remote folder if it exists
-    rm_remote_dir $remote_dir
+    # If we have to use the relay, remove the remote directory
+    if [ $(requires_relay) -eq 1 ]; then
+    
+        # This is the name of the remote directory
+        remote_dir=${git_relay_folder}/${dir}
+
+        # Delete the existing remote folder if it exists
+        rm_remote_dir $remote_dir
+    fi
 
     # On the remote system, clone the repo from the cloud
     git-relay clone ${git_relay_hub}/$dir
