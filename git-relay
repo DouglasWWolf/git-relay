@@ -174,14 +174,18 @@ repo_clone()
 
         # Delete the existing remote folder if it exists
         rm_remote_dir $remote_dir
+
+
+        # On the remote system, clone the repo from the cloud
+        git-relay clone ${git_relay_hub}/$dir
+        test $? -eq 0 || return $?
+
+        # Now copy the freshly cloned repo folder to the local machine
+        get_dir $dir
+    
+    else
+        git clone ${git_relay_hub}/$dir
     fi
-
-    # On the remote system, clone the repo from the cloud
-    git-relay clone ${git_relay_hub}/$dir
-    test $? -eq 0 || return $?
-
-    # Now copy the freshly cloned repo folder to the local machine
-    get_dir $dir
 
     # Hand the caller the exit code
     return $?
