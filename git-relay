@@ -167,7 +167,7 @@ repo_clone()
 
 
     # If we have to use the relay, remove the remote directory
-    if [ $(requires_relay) -eq 1 ]; then
+    if [ $(inside_roche_network) -eq 0 ]; then
     
         # This is the name of the remote directory
         remote_dir=${git_relay_folder}/${dir}
@@ -320,6 +320,25 @@ git_relay_server()
 
 
 #==============================================================================
+# This displays a "1" if we are inside the Roche network, otherwise it
+# displays a 0
+#==============================================================================
+inside_roche_network()
+{
+    # Try to ping ghe-rss.roche.com.  This is only possible
+    # if we are inside the roche network
+    local ping_result=$(ping -c1 ghe-rss.roche.com 2>/dev/null)
+
+    # Did ghe-rss.roche.com resolve?
+    echo $ping_result | grep -q "1 packets"
+
+    # If we were able to ping that server, then we are inside of Roche
+    test $? -eq 0 && echo 1 || echo 0
+}
+#==============================================================================
+
+
+#==============================================================================
 # This function examins the origin of a repo, and determines whether git-relay
 # will be required to access it.   git-relay is required when accessing a Roche
 # repo from outside of the Roche network
@@ -339,16 +358,8 @@ requires_relay()
         return 
     fi
 
-    # Try to ping ghe-rss.roche.com.  This is only possible
-    # if we are inside the roche network
-    ping_result=$(ping -c1 ghe-rss.roche.com 2>/dev/null)
-
-    # Did ghe-rss.roche.com resolve?
-    echo $ping_result | grep -q "1 packets"
-
-    # If we couldn't ping that server, we're outside of the
-    # Roche network and therefore need to use git-relay
-    test $? -eq 0 && echo 0 || echo 1
+    # If we're outside the Roche network, we need to use git-relay
+    test $(inside_roche_network) -eq 1 && echo 0 || echo 1
 }
 #==============================================================================
 
