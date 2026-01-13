@@ -203,7 +203,7 @@ repo_push()
         put_dir_rsync $PWD
 
         # Ensure that every file is added to the repo
-        git-relay add .
+        git-relay add \.
 
         # Issue a commit
         git-relay commit -m "\"No commit message\""
